@@ -68,7 +68,7 @@ void FSuperManagerModule::AddCBMenuEntry(FMenuBuilder & MenuBuilder)
 		FSlateIcon(),
 		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked)
 	);
-
+	
 	MenuBuilder.AddMenuEntry(
 		FText::FromString(TEXT("Advance Deletaion")),
 		FText::FromString(TEXT("List assets by specific condition in a tab for deleting")),
@@ -240,7 +240,9 @@ void FSuperManagerModule::FixUpRedirectors()
 void FSuperManagerModule::RegisterAdvanceDeletionTab()
 {
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(FName("AdvanceDeletion"),
-		FOnSpawnTab::CreateRaw(this, &FSuperManagerModule::OnSpawnAdvanceDeletionTab)).SetDisplayName(FText::FromString(TEXT("Advance Deletion")));
+		FOnSpawnTab::CreateRaw(this, &FSuperManagerModule::OnSpawnAdvanceDeletionTab))
+		.SetDisplayName(FText::FromString(TEXT("Advance Deletion")))
+		.SetAutoGenerateMenuEntry(false); // do not appear in the tool menu
 }
 
 TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeletionTab(const FSpawnTabArgs& SpawnedTadArgs)

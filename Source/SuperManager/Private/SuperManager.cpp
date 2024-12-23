@@ -14,6 +14,7 @@
 void FSuperManagerModule::StartupModule()
 {
 	InitCBMenuExtention();
+	RegisterAdvanceDeletionTab();
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
 }
 
@@ -66,6 +67,13 @@ void FSuperManagerModule::AddCBMenuEntry(FMenuBuilder & MenuBuilder)
 		FText::FromString(TEXT("Safely delete all empty Folders")),
 		FSlateIcon(),
 		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked)
+	);
+
+	MenuBuilder.AddMenuEntry(
+		FText::FromString(TEXT("Advance Deletaion")),
+		FText::FromString(TEXT("List assets by specific condition in a tab for deleting")),
+		FSlateIcon(),
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnAdvanceDeletionButtonClicked)
 	);
 }
 
@@ -178,6 +186,11 @@ void FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked()
 	}
 }
 
+void FSuperManagerModule::OnAdvanceDeletionButtonClicked()
+{
+	FGlobalTabmanager::Get()->TryInvokeTab(FName("AdvanceDeletion"));
+}
+
 void FSuperManagerModule::FixUpRedirectors()
 {
 	IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
@@ -223,6 +236,21 @@ void FSuperManagerModule::FixUpRedirectors()
 
 #pragma endregion
 
+#pragma region CustomEditorTab
+void FSuperManagerModule::RegisterAdvanceDeletionTab()
+{
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(FName("AdvanceDeletion"),
+		FOnSpawnTab::CreateRaw(this, &FSuperManagerModule::OnSpawnAdvanceDeletionTab)).SetDisplayName(FText::FromString(TEXT("Advance Deletion")));
+}
+
+TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeletionTab(const FSpawnTabArgs& SpawnedTadArgs)
+{
+	return
+	SNew(SDockTab).TabRole(ETabRole::NomadTab);
+}
+
+#pragma endregion
+
 void FSuperManagerModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
@@ -230,5 +258,6 @@ void FSuperManagerModule::ShutdownModule()
 }
 
 #undef LOCTEXT_NAMESPACE
+
 	
 IMPLEMENT_MODULE(FSuperManagerModule, SuperManager)

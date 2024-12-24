@@ -8,6 +8,8 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 #include "AssetViewUtils.h"
+#include "SlateWidgets/AdvanceDeletionWidget.h"
+
 
 #define LOCTEXT_NAMESPACE "FSuperManagerModule"
 
@@ -245,10 +247,15 @@ void FSuperManagerModule::RegisterAdvanceDeletionTab()
 		.SetAutoGenerateMenuEntry(false); // do not appear in the tool menu
 }
 
-TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeletionTab(const FSpawnTabArgs& SpawnedTadArgs)
+TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeletionTab(const FSpawnTabArgs &SpawnedTadArgs)
 {
 	return
-	SNew(SDockTab).TabRole(ETabRole::NomadTab);
+		SNew(SDockTab).TabRole(ETabRole::NomadTab)
+		[
+			SNew(SAdvanceDeletionTab)
+				.TestString(TEXT("Hello World"))
+		]
+		;
 }
 
 #pragma endregion

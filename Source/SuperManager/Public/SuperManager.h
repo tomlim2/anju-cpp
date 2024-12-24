@@ -27,6 +27,6 @@ class FSuperManagerModule : public IModuleInterface
 	#pragma endregion
 	#pragma region CustomEditorTab
 		void RegisterAdvanceDeletionTab();
-		TSharedRef<SDockTab> OnSpawnAdvanceDeletionTab(const FSpawnTabArgs& SpawnedTadArgs);
+		TSharedRef<SDockTab> OnSpawnAdvanceDeletionTab(const FSpawnTabArgs &SpawnTabArgs);
 	#pragma endregion
 };

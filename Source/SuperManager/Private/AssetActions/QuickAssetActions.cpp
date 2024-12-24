@@ -24,7 +24,7 @@ void UQuickAssetActions::DuplicateAssets(int32 NumOfDuplicates)
 	{
 		for(int32 i = 0; i<NumOfDuplicates;i++)
 		{
-			const FString SourceAssetPath = SelectedAssetData.ObjectPath.ToString();
+			const FString SourceAssetPath = SelectedAssetData.PackageName.ToString();
 			const FString NewDuplicatedAssetName = SelectedAssetData.AssetName.ToString() + TEXT("_") + FString::FromInt(i+1);
 			const FString NewPathName = FPaths::Combine(SelectedAssetData.PackagePath.ToString(), NewDuplicatedAssetName);
 
@@ -94,7 +94,7 @@ void UQuickAssetActions::RemoveUnsuedAssets()
 
 	for (const FAssetData& SelectedAssetData : SelectedAssetsData)
 	{
-		TArray<FString> AssetReferencers = UEditorAssetLibrary::FindPackageReferencersForAsset(SelectedAssetData.ObjectPath.ToString());
+		TArray<FString> AssetReferencers = UEditorAssetLibrary::FindPackageReferencersForAsset(SelectedAssetData.PackageName.ToString());
 		
 		if(AssetReferencers.Num() == 0)
 		{

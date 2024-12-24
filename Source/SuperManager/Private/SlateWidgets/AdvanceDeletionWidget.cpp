@@ -1,6 +1,4 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "SlateWidgets/AdvanceDeletionWidget.h"
 #include "SlateBasics.h"
 #include "DebugHeader.h"
@@ -9,7 +7,7 @@ void SAdvanceDeletionTab::Construct(const FArguments& InArgs)
 {
 	bCanSupportFocus = true;
 	StoredAssetsData = InArgs._AssetsDataToStore;
-	FSlateFontInfo TitleTextFont = FCoreStyle::Get().GetFontStyle(FName("EmbossedText"));
+	FSlateFontInfo TitleTextFont = GetEmbossedTextFont();
 	TitleTextFont.Size = 30;
 
 	ChildSlot
@@ -57,7 +55,15 @@ void SAdvanceDeletionTab::Construct(const FArguments& InArgs)
 TSharedRef<ITableRow> SAdvanceDeletionTab::OnGenerateRowForList(TSharedPtr<FAssetData> AssetDataToDisplay, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	if (!AssetDataToDisplay.IsValid()) return SNew(STableRow<TSharedPtr<FAssetData>>, OwnerTable);
+	const FString DisplayAssetClassName = AssetDataToDisplay->AssetClass.ToString();
 	const FString DisplayAssetName = AssetDataToDisplay->AssetName.ToString();
+	
+	FSlateFontInfo AssetClassNameFont = GetEmbossedTextFont();
+	AssetClassNameFont.Size = 10;
+
+	FSlateFontInfo AssetNameFont = GetEmbossedTextFont();
+	AssetNameFont.Size = 15;
+	
 	TSharedRef<STableRow<TSharedPtr<FAssetData>>> ListViewRowWidget =
 		SNew(STableRow<TSharedPtr<FAssetData>>, OwnerTable)
 		[
@@ -72,11 +78,17 @@ TSharedRef<ITableRow> SAdvanceDeletionTab::OnGenerateRowForList(TSharedPtr<FAsse
 				]
 			
 				// Second slot for display asset class name
+				+ SHorizontalBox::Slot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Fill)
+				.FillWidth(.2f)
+				[
+					ConstructTextForRowWidget(DisplayAssetClassName, AssetClassNameFont)
+				]
 				// thrid slot for display assetname
 				+SHorizontalBox::Slot()
 				[
-				SNew(STextBlock)
-					.Text(FText::FromString(DisplayAssetName))
+					ConstructTextForRowWidget(DisplayAssetName, AssetNameFont)
 				]
 			// fourth slot for a button
 			//SNew(STextBlock).Text(FText::FromString(DisplayAssetName))
@@ -111,4 +123,15 @@ void SAdvanceDeletionTab::OnCheckBoxStateChanged(ECheckBoxState NewState, TShare
 	
 	}
 	DebugHeader::PrintLog(AssetData->AssetName.ToString());
+}
+
+TSharedRef<STextBlock> SAdvanceDeletionTab::ConstructTextForRowWidget(const FString& TextContent, const FSlateFontInfo& FontToUse)
+{
+	TSharedRef<STextBlock> ConstructedTextBlock = SNew(STextBlock);
+	SNew(STextBlock)
+		.Text(FText::FromString(TextContent))
+		.Font(FontToUse)
+		.ColorAndOpacity(FColor::White);
+
+	return ConstructedTextBlock;
 }

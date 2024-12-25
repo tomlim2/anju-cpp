@@ -133,7 +133,7 @@ void UQuickAssetActions::FixUpReirectors()
 
 	for (const FAssetData& Asset : AssetList)
 	{
-		ObjectPaths.Add(Asset.GetObjectPathString());
+		ObjectPaths.Add(Asset.PackageName.ToString());
 	}
 
 	// Load assets

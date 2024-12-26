@@ -29,5 +29,10 @@ class FSuperManagerModule : public IModuleInterface
 		void RegisterAdvanceDeletionTab();
 		TSharedRef<SDockTab> OnSpawnAdvanceDeletionTab(const FSpawnTabArgs &SpawnTabArgs);
 		TArray<TSharedPtr<FAssetData>> GetAllAssetDataUnderSelectedFolder();
-#pragma endregion
+	#pragma endregion
+
+	public:
+	#pragma region ProccessDataForAdvanceDeletionTab
+		bool DeleteSingleAssetForAssetList(const FAssetData& AssetDataToDelete);
+	#pragma endregion
 };

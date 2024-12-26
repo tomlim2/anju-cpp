@@ -211,7 +211,7 @@ void FSuperManagerModule::FixUpRedirectors()
 
 	for (const FAssetData& Asset : AssetList)
 	{
-		ObjectPaths.Add(Asset.GetObjectPathString());
+		ObjectPaths.Add(Asset.PackageName.ToString());
 	}
 
 	// Load assets
@@ -261,6 +261,9 @@ TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeletionTab(const FSpawn
 TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelectedFolder()
 {
 	TArray<TSharedPtr<FAssetData>> AvailableAssetsData;
+	// Check if FolderPathsSelected is valid
+	
+
 	TArray<FString> AssetsPathNames = UEditorAssetLibrary::ListAssets(FolderPathsSelected[0]);
 	for (const FString& AssetPathName : AssetsPathNames)
 	{
@@ -283,6 +286,18 @@ TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelected
 	return AvailableAssetsData;
 }
 
+#pragma endregion
+
+#pragma region ProcessDataForAdvanceDeletionTab
+bool FSuperManagerModule::DeleteSingleAssetForAssetList(const FAssetData& AssetDataToDelete)
+{
+	TArray<FAssetData> AssetDataForDeletion;
+	AssetDataForDeletion.Add(AssetDataToDelete);
+	if (ObjectTools::DeleteAssets(AssetDataForDeletion) > 0) {
+		return true;
+	}
+	return false;
+}
 #pragma endregion
 
 void FSuperManagerModule::ShutdownModule()

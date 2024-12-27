@@ -34,5 +34,8 @@ class FSuperManagerModule : public IModuleInterface
 	public:
 	#pragma region ProccessDataForAdvanceDeletionTab
 		bool DeleteSingleAssetForAssetList(const FAssetData& AssetDataToDelete);
+		bool DeleteMultipleAssetsForAssetList(const TArray<FAssetData>& AssetsToDelete);
+		void ListUnusedAssetsForAssetList(const TArray<TSharedPtr<FAssetData>>& AssetsDataToFilter,
+			TArray<TSharedPtr<FAssetData>>& OutUnusedAssetsData);
 	#pragma endregion
 };

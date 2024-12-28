@@ -51,6 +51,20 @@ void SAdvanceDeletionTab::Construct(const FArguments& InArgs)
 						[
 							ConstructComboBox()
 						]
+						//Help text for combo box
+						+SHorizontalBox::Slot()
+						.FillWidth(.6f)
+						[
+							ConstructComboHelpTexts(TEXT("Specify the listing condition in the drop down. Left mouse click to go to where asset is located"),
+								ETextJustify::Center)
+						]
+						+ SHorizontalBox::Slot()
+						.FillWidth(.1f)
+						[
+							ConstructComboHelpTexts(TEXT("Current Folder:\n") + InArgs._CurrentSelectedFolder,
+								ETextJustify::Right)
+						]
+
 				]
 				//Third slot for the asset list
 				+SVerticalBox::Slot()
@@ -167,6 +181,17 @@ void SAdvanceDeletionTab::OnComboSelectionChanged(
 
 	//Pass data for our module to filter
 
+}
+
+TSharedRef<STextBlock> SAdvanceDeletionTab::ConstructComboHelpTexts(const FString& TextContent, ETextJustify::Type TextJustify)
+{
+	TSharedRef<STextBlock> ConstructedHelpText = 
+		SNew(STextBlock)
+		.Text(FText::FromString(TextContent))
+		.Justification(TextJustify)
+		.AutoWrapText(true);
+
+	return ConstructedHelpText;
 }
 
 #pragma endregion

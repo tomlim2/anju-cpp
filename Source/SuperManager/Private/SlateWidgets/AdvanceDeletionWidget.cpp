@@ -6,6 +6,7 @@
 
 #define ListAll TEXT("List All Available Assets")
 #define ListUnused TEXT("List Unsued Assets")
+#define ListSameName TEXT("List Assets With Same Name")
 
 void SAdvanceDeletionTab::Construct(const FArguments& InArgs)
 {
@@ -15,9 +16,11 @@ void SAdvanceDeletionTab::Construct(const FArguments& InArgs)
 
 	CheckBoxesArray.Empty();
 	AssetsDataToDeleteArray.Empty();
+	ComboBoxSourceItems.Empty();
 
 	ComboBoxSourceItems.Add(MakeShared<FString>(ListAll));
 	ComboBoxSourceItems.Add(MakeShared<FString>(ListUnused));
+	ComboBoxSourceItems.Add(MakeShared<FString>(ListSameName));
 
 	FSlateFontInfo TitleTextFont = GetEmbossedTextFont();
 	TitleTextFont.Size = 30;
@@ -48,6 +51,20 @@ void SAdvanceDeletionTab::Construct(const FArguments& InArgs)
 						[
 							ConstructComboBox()
 						]
+						//Help text for combo box
+						+SHorizontalBox::Slot()
+						.FillWidth(.6f)
+						[
+							ConstructComboHelpTexts(TEXT("Specify the listing condition in the drop down. Left mouse click to go to where asset is located"),
+								ETextJustify::Center)
+						]
+						+ SHorizontalBox::Slot()
+						.FillWidth(.1f)
+						[
+							ConstructComboHelpTexts(TEXT("Current Folder:\n") + InArgs._CurrentSelectedFolder,
+								ETextJustify::Right)
+						]
+
 				]
 				//Third slot for the asset list
 				+SVerticalBox::Slot()
@@ -95,7 +112,9 @@ TSharedRef<SListView<TSharedPtr<FAssetData>>> SAdvanceDeletionTab::ConstructAsse
 	ConstructedAssetListView = SNew(SListView<TSharedPtr<FAssetData>>)
 		.ItemHeight(26.f)
 		.ListItemsSource(&DisplayedAssetsData)
-		.OnGenerateRow(this, &SAdvanceDeletionTab::OnGenerateRowForList);
+		.OnGenerateRow(this, &SAdvanceDeletionTab::OnGenerateRowForList)
+		.OnMouseButtonClick(this,&SAdvanceDeletionTab::OnRowWidgetMouseButtonClicked)
+		;
 	return ConstructedAssetListView.ToSharedRef();
 }
 
@@ -145,16 +164,35 @@ void SAdvanceDeletionTab::OnComboSelectionChanged(
 	if(*SelectedOption.Get() == ListAll)
 	{
 		//List all stored asset data
+		DisplayedAssetsData = StoredAssetsData;
+		RefreshAssetListView();
 	}
 	else if (*SelectedOption.Get() == ListUnused)
 	{
 		//List all unused assets
-		SuperManagerModule.ListUnusedAssetsForAssetList(StoredAssetsData,DisplayedAssetsData);
+		SuperManagerModule.ListUnusedAssetsForAssetList(StoredAssetsData, DisplayedAssetsData);
+		//DisplayedAssetsData = StoredAssetsData;
+		RefreshAssetListView();
+	}
+	else if (*SelectedOption.Get() == ListSameName)
+	{
+		SuperManagerModule.ListSameNameAssetsForAssetList(StoredAssetsData, DisplayedAssetsData);
 		RefreshAssetListView();
 	}
 
 	//Pass data for our module to filter
 
+}
+
+TSharedRef<STextBlock> SAdvanceDeletionTab::ConstructComboHelpTexts(const FString& TextContent, ETextJustify::Type TextJustify)
+{
+	TSharedRef<STextBlock> ConstructedHelpText = 
+		SNew(STextBlock)
+		.Text(FText::FromString(TextContent))
+		.Justification(TextJustify)
+		.AutoWrapText(true);
+
+	return ConstructedHelpText;
 }
 
 #pragma endregion
@@ -213,6 +251,14 @@ TSharedRef<ITableRow> SAdvanceDeletionTab::OnGenerateRowForList(TSharedPtr<FAsse
 			//SNew(STextBlock).Text(FText::FromString(DisplayAssetName))
 		];
 	return ListViewRowWidget;	
+}
+
+void SAdvanceDeletionTab::OnRowWidgetMouseButtonClicked(TSharedPtr<FAssetData> ClickedData)
+{
+	FSuperManagerModule& SuperManagerModule =
+		FModuleManager::LoadModuleChecked<FSuperManagerModule>(TEXT("SuperManager"));
+
+	SuperManagerModule.SyscCBToClickedAssetForAssetList(ClickedData->PackageName.ToString());
 }
 
 TSharedRef<SCheckBox> SAdvanceDeletionTab::ConstructCheckBox(const TSharedPtr<FAssetData>& AssetDataToDisplay)
@@ -277,6 +323,10 @@ FReply SAdvanceDeletionTab::OnDeleteButtonClicked(TSharedPtr<FAssetData> Clicked
 		{
 			StoredAssetsData.Remove(ClickedAssetData);
 		}
+		if (DisplayedAssetsData.Contains(ClickedAssetData))
+		{
+			DisplayedAssetsData.Contains(ClickedAssetData);
+		}
 
 		//Refresh the list view
 		RefreshAssetListView();
@@ -319,6 +369,10 @@ FReply SAdvanceDeletionTab::OnDeleteAllButtonClicked()
 			if (StoredAssetsData.Contains(DeletedData))
 			{
 				StoredAssetsData.Remove(DeletedData);
+			}
+			if (DisplayedAssetsData.Contains(DeletedData))
+			{
+				DisplayedAssetsData.Remove(DeletedData);
 			}
 		}
 

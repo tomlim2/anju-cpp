@@ -190,6 +190,7 @@ void FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked()
 
 void FSuperManagerModule::OnAdvanceDeletionButtonClicked()
 {
+	FixUpRedirectors();
 	FGlobalTabmanager::Get()->TryInvokeTab(FName("AdvanceDeletion"));
 }
 
@@ -254,6 +255,7 @@ TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeletionTab(const FSpawn
 		[
 			SNew(SAdvanceDeletionTab)
 				.AssetsDataToStore(GetAllAssetDataUnderSelectedFolder())
+				.CurrentSelectedFolder(FolderPathsSelected[0])
 		]
 		;
 }
@@ -309,23 +311,57 @@ bool FSuperManagerModule::DeleteMultipleAssetsForAssetList(const TArray<FAssetDa
 
 void FSuperManagerModule::ListUnusedAssetsForAssetList(const TArray<TSharedPtr<FAssetData>>& AssetsDataToFilter, TArray<TSharedPtr<FAssetData>>& OutUnusedAssetsData)
 {
+	OutUnusedAssetsData.Empty();
 	for (const TSharedPtr<FAssetData>& DataSharedPtr : AssetsDataToFilter)
 	{
-		OutUnusedAssetsData.Empty();
-		TArray<FString> AssetReferencers = 
-		UEditorAssetLibrary::FindPackageReferencersForAsset(DataSharedPtr->ObjectPath.ToString());
+		TArray<FString> AssetReferencers = UEditorAssetLibrary::FindPackageReferencersForAsset(DataSharedPtr->GetObjectPathString());
 		if (AssetReferencers.Num()==0)
 		{
 			OutUnusedAssetsData.Add(DataSharedPtr);
 		}
 	}
 }
+
+void FSuperManagerModule::ListSameNameAssetsForAssetList(const TArray<TSharedPtr<FAssetData>>& AssetsDataToFilter, TArray<TSharedPtr<FAssetData>>& OutSameNameAssetsData)
+{
+	OutSameNameAssetsData.Empty();
+	//Multimap
+	TMultiMap<FString, TSharedPtr<FAssetData>> AssetsInfoMultiMap;
+	for (const TSharedPtr<FAssetData>& DataSharedPtr : AssetsDataToFilter) 
+	{
+		AssetsInfoMultiMap.Emplace(DataSharedPtr->AssetName.ToString(), DataSharedPtr);
+	}
+	for (const TSharedPtr<FAssetData>& DataSharedPtr : AssetsDataToFilter)
+	{
+		TArray<TSharedPtr<FAssetData>> OutAssetsData;
+		AssetsInfoMultiMap.MultiFind(DataSharedPtr->AssetName.ToString(), OutAssetsData);
+
+		if (OutAssetsData.Num() <= 1) continue;
+		
+		for (const TSharedPtr<FAssetData>& SameNameData : OutAssetsData) 
+		{
+			if (SameNameData.IsValid()) 
+			{
+				OutSameNameAssetsData.AddUnique(SameNameData);
+			}
+		}
+	}
+}
+
+void FSuperManagerModule::SyscCBToClickedAssetForAssetList(const FString& AssetPathToSync)
+{
+	TArray<FString> AssetsPathToSync;
+	AssetsPathToSync.Add(AssetPathToSync);
+	UEditorAssetLibrary::SyncBrowserToObjects(AssetsPathToSync);
+}
+
 #pragma endregion
 
 void FSuperManagerModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(FName("AdvanceDeletion"));
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -37,5 +37,7 @@ class FSuperManagerModule : public IModuleInterface
 		bool DeleteMultipleAssetsForAssetList(const TArray<FAssetData>& AssetsToDelete);
 		void ListUnusedAssetsForAssetList(const TArray<TSharedPtr<FAssetData>>& AssetsDataToFilter,
 			TArray<TSharedPtr<FAssetData>>& OutUnusedAssetsData);
+		void ListSameNameAssetsForAssetList(const TArray<TSharedPtr<FAssetData>>& AssetsDataToFilter, TArray<TSharedPtr<FAssetData>>& OutSameNameAssetsData);
+		void SyscCBToClickedAssetForAssetList(const FString& AssetPathToSync);
 	#pragma endregion
 };

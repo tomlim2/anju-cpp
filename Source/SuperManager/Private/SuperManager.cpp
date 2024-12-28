@@ -311,17 +311,17 @@ bool FSuperManagerModule::DeleteMultipleAssetsForAssetList(const TArray<FAssetDa
 
 void FSuperManagerModule::ListUnusedAssetsForAssetList(const TArray<TSharedPtr<FAssetData>>& AssetsDataToFilter, TArray<TSharedPtr<FAssetData>>& OutUnusedAssetsData)
 {
+	OutUnusedAssetsData.Empty();
 	for (const TSharedPtr<FAssetData>& DataSharedPtr : AssetsDataToFilter)
 	{
-		OutUnusedAssetsData.Empty();
-		TArray<FString> AssetReferencers = 
-		UEditorAssetLibrary::FindPackageReferencersForAsset(DataSharedPtr->ObjectPath.ToString());
+		TArray<FString> AssetReferencers = UEditorAssetLibrary::FindPackageReferencersForAsset(DataSharedPtr->GetObjectPathString());
 		if (AssetReferencers.Num()==0)
 		{
 			OutUnusedAssetsData.Add(DataSharedPtr);
 		}
 	}
 }
+
 void FSuperManagerModule::ListSameNameAssetsForAssetList(const TArray<TSharedPtr<FAssetData>>& AssetsDataToFilter, TArray<TSharedPtr<FAssetData>>& OutSameNameAssetsData)
 {
 	OutSameNameAssetsData.Empty();
@@ -361,6 +361,7 @@ void FSuperManagerModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(FName("AdvanceDeletion"));
 }
 
 #undef LOCTEXT_NAMESPACE

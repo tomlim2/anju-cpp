@@ -170,7 +170,8 @@ void SAdvanceDeletionTab::OnComboSelectionChanged(
 	else if (*SelectedOption.Get() == ListUnused)
 	{
 		//List all unused assets
-		SuperManagerModule.ListUnusedAssetsForAssetList(StoredAssetsData,DisplayedAssetsData);
+		SuperManagerModule.ListUnusedAssetsForAssetList(StoredAssetsData, DisplayedAssetsData);
+		//DisplayedAssetsData = StoredAssetsData;
 		RefreshAssetListView();
 	}
 	else if (*SelectedOption.Get() == ListSameName)
@@ -257,7 +258,7 @@ void SAdvanceDeletionTab::OnRowWidgetMouseButtonClicked(TSharedPtr<FAssetData> C
 	FSuperManagerModule& SuperManagerModule =
 		FModuleManager::LoadModuleChecked<FSuperManagerModule>(TEXT("SuperManager"));
 
-	SuperManagerModule.SyscCBToClickedAssetForAssetList(ClickedData->ObjectPath.ToString());
+	SuperManagerModule.SyscCBToClickedAssetForAssetList(ClickedData->PackageName.ToString());
 }
 
 TSharedRef<SCheckBox> SAdvanceDeletionTab::ConstructCheckBox(const TSharedPtr<FAssetData>& AssetDataToDisplay)

@@ -31,9 +31,9 @@ private:
 	TSharedPtr<STextBlock> ComboDisplayTextBlock;
 #pragma endregion
 #pragma region RowWidgetForAssetListView
-
 	TSharedRef<ITableRow> OnGenerateRowForList(TSharedPtr<FAssetData>AssetDataToDisplay,
 		const TSharedRef<STableViewBase>& OwnerTable);
+	void OnRowWidgetMouseButtonClicked(TSharedPtr<FAssetData>ClickedData);
 	TSharedRef<SCheckBox> ConstructCheckBox(const TSharedPtr<FAssetData>& AssetDataToDisplay);
 	TSharedRef<SButton> ConstructButtonForRowWidget(const TSharedPtr<FAssetData>& AssetDataToDisplay);
 	void OnCheckBoxStateChanged(ECheckBoxState NewState, TSharedPtr<FAssetData> AssetData);

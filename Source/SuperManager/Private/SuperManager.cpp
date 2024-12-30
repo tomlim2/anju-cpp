@@ -51,6 +51,7 @@ TSharedRef<FExtender> FSuperManagerModule::CustomCBMenuExtender(const TArray<FSt
 		MenuExtender->AddMenuExtension(FName("Delete"),
 			EExtensionHook::After,
 			TSharedPtr<FUICommandList>(),
+			
 			FMenuExtensionDelegate::CreateRaw(this, &FSuperManagerModule::AddCBMenuEntry));
 		FolderPathsSelected = SelectedPaths;
 	}
@@ -247,7 +248,7 @@ void FSuperManagerModule::RegisterAdvanceDeletionTab()
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(FName("AdvanceDeletion"),
 		FOnSpawnTab::CreateRaw(this, &FSuperManagerModule::OnSpawnAdvanceDeletionTab))
 		.SetDisplayName(FText::FromString(TEXT("Advance Deletion")))
-		//.SetAutoGenerateMenuEntry(false), // do not appear in the tool menu
+		.SetAutoGenerateMenuEntry(false) // do not appear in the tool menu
 		.SetIcon(FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "ContentBrowser.Icon_PB_004"));
 }
 

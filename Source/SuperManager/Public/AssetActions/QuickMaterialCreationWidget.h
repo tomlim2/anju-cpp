@@ -7,6 +7,13 @@
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "QuickMaterialCreationWidget.generated.h"
 
+UENUM(BlueprintType)
+enum class E_ChannelPackingType :uint8
+{
+	ECPT_NoChannelPacking UMETA(DisplayName = "No Channel Packing"),
+	ECPT_ORM UMETA(DisplayName = "OcclusionRoughnessMetallic"),
+	ECPT_MAX UMETA(DisplayName = "DefaultMAX")
+};
 /**
  * 
  */
@@ -19,6 +26,11 @@ public:
 #pragma region QuickMaterialCreationCore
 	UFUNCTION(BlueprintCallable)
 	void CreateMaterialFromSelectedTextures();
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "CreateMaterialFromSelectedTextures")
+	E_ChannelPackingType ChannelPackingType = E_ChannelPackingType::ECPT_NoChannelPacking;
+
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialFromSelectedTextures")
 	bool bCustomMaterialName = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialFromSelectedTextures", meta = (EditCondition = "bCustomMaterialName"))
@@ -56,6 +68,12 @@ public:
 		TEXT("_AmbientOcclusionMap"),
 		TEXT("_AO")
 	};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SupperotedTextureNames")
+	TArray<FString> ORMArray = {
+		TEXT("_arm"),
+		TEXT("_OcclusionRoughnessMetallic"),
+		TEXT("_ORM")
+	};
 
 #pragma endregion
 
@@ -65,6 +83,7 @@ private:
 	bool CheckIsNameUsed(const FString& FolderPathToCheck, const FString& MaterialNameToCheck);
 	UMaterial* CreateMaterialAsset(const FString& NameOfTheMaterial, const FString& PathToPutMaterial);
 	void Default_CreateMaterialNodes(UMaterial* CreatedMaterial, UTexture2D* SelectedTexture, uint32& PinsConnectedCounter);
+	void ORM_CreateMaterialNodes(UMaterial* CreatedMaterial, UTexture2D* SelectedTexture, uint32& PinsConnectedCounter);
 #pragma endregion
 
 #pragma region CreateMaterialNodeConnectPins
@@ -73,7 +92,7 @@ private:
 	bool TryConnectRoughness(UMaterialExpressionTextureSample* TextureSamplerNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial);
 	bool TryConnectNormal(UMaterialExpressionTextureSample* TextureSamplerNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial);
 	bool TryConnectAO(UMaterialExpressionTextureSample* TextureSamplerNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial);
-
+	bool TryConnectORM(UMaterialExpressionTextureSample* TextureSamplerNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial);
 #pragma endregion
 
 };

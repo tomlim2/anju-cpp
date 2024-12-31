@@ -7,6 +7,8 @@
 #include "EditorAssetLibrary.h"
 #include "AssetToolsModule.h"
 #include "Factories/MaterialFactoryNew.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "Factories/MaterialInstanceConstantFactoryNew.h"
 
 #pragma region QuickMaterialCreationCore
 void UQuickMaterialCreationWidget::CreateMaterialFromSelectedTextures()
@@ -23,9 +25,9 @@ void UQuickMaterialCreationWidget::CreateMaterialFromSelectedTextures()
 	FString SelectedTextureFolderPath;
 	uint32 PinsConnectedCounter = 0;
 
-	if (!ProcessSelectedData(SelectedAssetsData, SelectedTexturesArray, SelectedTextureFolderPath)) return;
+	if (!ProcessSelectedData(SelectedAssetsData, SelectedTexturesArray, SelectedTextureFolderPath)) { MaterialName = TEXT("M_"); return; }
 
-	if (CheckIsNameUsed(SelectedTextureFolderPath, MaterialName)) return;
+	if (CheckIsNameUsed(SelectedTextureFolderPath, MaterialName)) { MaterialName = TEXT("M_"); return; }
 
 	UMaterial* CreatedMaterial = CreateMaterialAsset(MaterialName, SelectedTextureFolderPath);
 
@@ -38,14 +40,31 @@ void UQuickMaterialCreationWidget::CreateMaterialFromSelectedTextures()
 	for (UTexture2D* SelectedTexture:SelectedTexturesArray)
 	{
 		if (!SelectedTexture) continue;
-		Default_CreateMaterialNodes(CreatedMaterial, SelectedTexture, PinsConnectedCounter);
+
+		switch (ChannelPackingType)
+		{
+		case E_ChannelPackingType::ECPT_NoChannelPacking:
+			Default_CreateMaterialNodes(CreatedMaterial, SelectedTexture, PinsConnectedCounter);
+			break;
+		case E_ChannelPackingType::ECPT_ORM:
+			ORM_CreateMaterialNodes(CreatedMaterial, SelectedTexture, PinsConnectedCounter);
+			break;
+		case E_ChannelPackingType::ECPT_MAX:
+			break;
+		default:
+			break;
+		}
+
 	}
 
 	if (PinsConnectedCounter > 0)
 	{
 		DebugHeader::ShowNotifyInfo(TEXT("Successfullly connected ") + FString::FromInt(PinsConnectedCounter) + (TEXT(" pins")));
 	}
-
+	if (bCreateMaterialInstance)
+	{
+		CreateMaterialInstanceAsset(CreatedMaterial, MaterialName, SelectedTextureFolderPath);
+	}
 	MaterialName = TEXT("M_");
 }
 
@@ -173,6 +192,37 @@ void UQuickMaterialCreationWidget::Default_CreateMaterialNodes(UMaterial* Create
 	return;
 }
 
+void UQuickMaterialCreationWidget::ORM_CreateMaterialNodes(UMaterial* CreatedMaterial, UTexture2D* SelectedTexture, uint32& PinsConnectedCounter)
+{
+	UMaterialExpressionTextureSample* TextureSamplerNode =
+		NewObject<UMaterialExpressionTextureSample>(CreatedMaterial);
+	if (!TextureSamplerNode) return;
+	if (!CreatedMaterial->GetExpressionInputForProperty(MP_BaseColor)->IsConnected())
+	{
+		if (TryConnectBaseColor(TextureSamplerNode, SelectedTexture, CreatedMaterial))
+		{
+			PinsConnectedCounter++;
+			return;
+		}
+	}
+	if (!CreatedMaterial->GetExpressionInputForProperty(MP_Normal)->IsConnected())
+	{
+		if (TryConnectNormal(TextureSamplerNode, SelectedTexture, CreatedMaterial))
+		{
+			PinsConnectedCounter++;
+			return;
+		}
+	}
+	if(!CreatedMaterial->GetExpressionInputForProperty(MP_Roughness)->IsConnected())
+	{
+		if (TryConnectORM(TextureSamplerNode, SelectedTexture, CreatedMaterial)) {
+			PinsConnectedCounter += 3;
+			return;
+		}
+	}
+
+}
+
 #pragma endregion
 
 #pragma region CreateMaterialNodeConnectPins
@@ -236,6 +286,8 @@ bool UQuickMaterialCreationWidget::TryConnectRoughness(UMaterialExpressionTextur
 
 			TextureSamplerNode->MaterialExpressionEditorX -= 600;
 			TextureSamplerNode->MaterialExpressionEditorY += 480;
+
+			return true;
 		}
 	}
 	return false;
@@ -256,6 +308,8 @@ bool UQuickMaterialCreationWidget::TryConnectNormal(UMaterialExpressionTextureSa
 
 			TextureSamplerNode->MaterialExpressionEditorX -= 600;
 			TextureSamplerNode->MaterialExpressionEditorY += 720;
+
+			return true;
 		}
 	}
 	return false;
@@ -280,6 +334,35 @@ bool UQuickMaterialCreationWidget::TryConnectAO(UMaterialExpressionTextureSample
 
 			TextureSamplerNode->MaterialExpressionEditorX -= 600;
 			TextureSamplerNode->MaterialExpressionEditorY += 960;
+
+			return true;
+		}
+	}
+	return false;
+}
+
+bool UQuickMaterialCreationWidget::TryConnectORM(UMaterialExpressionTextureSample* TextureSamplerNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial)
+{
+	for (const FString& ORM_Name : ORMArray)
+	{
+		if (SelectedTexture->GetName().Contains(ORM_Name))
+		{
+			SelectedTexture->CompressionSettings = TextureCompressionSettings::TC_Masks;
+			SelectedTexture->SRGB = false;
+			SelectedTexture->PostEditChange();
+
+			TextureSamplerNode->Texture = SelectedTexture;
+			TextureSamplerNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Masks;
+
+			CreatedMaterial->GetExpressionCollection().AddExpression(TextureSamplerNode);
+			CreatedMaterial->GetExpressionInputForProperty(MP_AmbientOcclusion)->Connect(1, TextureSamplerNode);
+			CreatedMaterial->GetExpressionInputForProperty(MP_Roughness)->Connect(2, TextureSamplerNode);
+			CreatedMaterial->GetExpressionInputForProperty(MP_Metallic)->Connect(3, TextureSamplerNode);
+			
+			TextureSamplerNode->MaterialExpressionEditorX -= 600;
+			TextureSamplerNode->MaterialExpressionEditorY += 960;
+
+			return true;
 		}
 	}
 	return false;
@@ -287,3 +370,20 @@ bool UQuickMaterialCreationWidget::TryConnectAO(UMaterialExpressionTextureSample
 
 #pragma endregion
 
+UMaterialInstanceConstant* UQuickMaterialCreationWidget::CreateMaterialInstanceAsset(UMaterial* CreatedMaterial, FString NameOfMaterialInstance, const FString& PathToPutMaterialInstance)
+{
+	NameOfMaterialInstance.RemoveFromStart(TEXT("M_"));
+	NameOfMaterialInstance.InsertAt(0, TEXT("MI_"));
+
+	UMaterialInstanceConstantFactoryNew* MIFactoryNew = NewObject<UMaterialInstanceConstantFactoryNew>();
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+	UObject* CreatedObject = AssetToolsModule.Get().CreateAsset(NameOfMaterialInstance, PathToPutMaterialInstance, UMaterialInstanceConstant::StaticClass(), MIFactoryNew);
+	if (UMaterialInstanceConstant* CreatedMI = Cast<UMaterialInstanceConstant>(CreatedObject))
+	{
+		CreatedMI->SetParentEditorOnly(CreatedMaterial);
+		CreatedMI->PostEditChange();
+		CreatedMaterial->PostEditChange();
+		return CreatedMI;
+	}
+	return nullptr;
+}

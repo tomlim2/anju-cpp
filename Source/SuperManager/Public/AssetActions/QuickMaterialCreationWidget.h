@@ -22,7 +22,6 @@ class SUPERMANAGER_API UQuickMaterialCreationWidget : public UEditorUtilityWidge
 {
 	GENERATED_BODY()
 public:
-
 #pragma region QuickMaterialCreationCore
 	UFUNCTION(BlueprintCallable)
 	void CreateMaterialFromSelectedTextures();
@@ -30,11 +29,15 @@ public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "CreateMaterialFromSelectedTextures")
 	E_ChannelPackingType ChannelPackingType = E_ChannelPackingType::ECPT_NoChannelPacking;
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialFromSelectedTextures")
 	bool bCustomMaterialName = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialFromSelectedTextures", meta = (EditCondition = "bCustomMaterialName"))
 	FString MaterialName = TEXT("M_");
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "CreateMaterialFromSelectedTextures")
+	bool bCreateMaterialInstance = false;
+
 #pragma endregion
 
 #pragma region SupportedTextureNames
@@ -94,5 +97,5 @@ private:
 	bool TryConnectAO(UMaterialExpressionTextureSample* TextureSamplerNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial);
 	bool TryConnectORM(UMaterialExpressionTextureSample* TextureSamplerNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial);
 #pragma endregion
-
+	class UMaterialInstanceConstant* CreateMaterialInstanceAsset(UMaterial* CreatedMaterial, FString NameOfMaterialInstance, const FString& PathToPutMaterialInstance);
 };

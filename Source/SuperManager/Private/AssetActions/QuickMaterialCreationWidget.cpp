@@ -4,6 +4,9 @@
 #include "AssetActions/QuickMaterialCreationWidget.h"
 #include "DebugHeader.h"
 #include "EditorUtilityLibrary.h"
+#include "EditorAssetLibrary.h"
+#include "AssetToolsModule.h"
+#include "Factories/MaterialFactoryNew.h"
 
 #pragma region QuickMaterialCreationCore
 void UQuickMaterialCreationWidget::CreateMaterialFromSelectedTextures()
@@ -18,10 +21,25 @@ void UQuickMaterialCreationWidget::CreateMaterialFromSelectedTextures()
 	TArray<FAssetData> SelectedAssetsData = UEditorUtilityLibrary::GetSelectedAssetData();
 	TArray<UTexture2D*> SelectedTexturesArray;
 	FString SelectedTextureFolderPath;
+	uint32 PinsConnectedCounter = 0;
 
 	if (!ProcessSelectedData(SelectedAssetsData, SelectedTexturesArray, SelectedTextureFolderPath)) return;
 
-	DebugHeader::PrintLog(SelectedTextureFolderPath);
+	if (CheckIsNameUsed(SelectedTextureFolderPath, MaterialName)) return;
+
+	UMaterial* CreatedMaterial = CreateMaterialAsset(MaterialName, SelectedTextureFolderPath);
+
+	if (!CreatedMaterial)
+	{
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Failed to create material"));
+		return;
+	}
+
+	for (UTexture2D* SelectedTexture:SelectedTexturesArray)
+	{
+		if (!SelectedTexture) continue;
+		Default_CreateMaterialNodes(CreatedMaterial, SelectedTexture, PinsConnectedCounter);
+	}
 }
 
 //Process the selected data, will filter out textures, and return false if non-texture selected
@@ -65,4 +83,68 @@ bool UQuickMaterialCreationWidget::ProcessSelectedData(const TArray<FAssetData>&
 	}
 	return true;
 }
+
+//Will return true if the material name is used by asset under the specified folder
+bool UQuickMaterialCreationWidget::CheckIsNameUsed(const FString& FolderPathToCheck, const FString& MaterialNameToCheck)
+{
+	TArray<FString> ExistingAssetsPaths = UEditorAssetLibrary::ListAssets(FolderPathToCheck, false);
+	for (const FString& ExistingAssetPath : ExistingAssetsPaths)
+	{
+		const FString ExistingAssetName = FPaths::GetBaseFilename(ExistingAssetPath);
+
+		if (ExistingAssetName.Equals(MaterialNameToCheck))
+		{
+			DebugHeader::ShowMsgDialog(EAppMsgType::Ok, MaterialNameToCheck + TEXT(" is already used by asset"));
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+UMaterial* UQuickMaterialCreationWidget::CreateMaterialAsset(const FString& NameOfTheMaterial, const FString& PathToPutMaterial)
+{
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+	UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
+	UObject* CreatedObject = AssetToolsModule.Get().CreateAsset(NameOfTheMaterial, PathToPutMaterial, 
+		UMaterial::StaticClass(),MaterialFactory);
+	return Cast<UMaterial>(CreatedObject);
+}
+
+void UQuickMaterialCreationWidget::Default_CreateMaterialNodes(UMaterial* CreatedMaterial,
+	UTexture2D* SelectedTexture, uint32& PinsConnectedCounter)
+{
+	UMaterialExpressionTextureSample* TextureSampleNode = NewObject<UMaterialExpressionTextureSample>(CreatedMaterial);
+	if (!TextureSampleNode) return;
+
+	if (!CreatedMaterial->GetExpressionInputForProperty(MP_BaseColor)->IsConnected()) {
+		if (TryConnectBaseColor(TextureSampleNode,SelectedTexture,CreatedMaterial))
+		{
+			PinsConnectedCounter++;
+				return;
+		}
+	}
+}
+
 #pragma endregion
+
+#pragma region CreateMaterialNodes
+bool UQuickMaterialCreationWidget::TryConnectBaseColor(UMaterialExpressionTextureSample* TextureSampleNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial)
+{
+	for (const FString& BaseColorName : BaseColorArray) {
+		if (SelectedTexture->GetName().Contains(BaseColorName))
+		{
+			//connect pins to base color socket here
+			TextureSampleNode->Texture = SelectedTexture;
+			CreatedMaterial->GetExpressionCollection().AddExpression(TextureSampleNode);
+			CreatedMaterial->GetExpressionInputForProperty(MP_BaseColor)->Connect(0, TextureSampleNode);
+			CreatedMaterial->PostEditChange();
+
+			TextureSampleNode->MaterialExpressionEditorX -= 600;
+			return true;
+		}
+	}
+	return false;
+}
+#pragma endregion
+

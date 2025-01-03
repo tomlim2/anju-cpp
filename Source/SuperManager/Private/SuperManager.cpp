@@ -22,8 +22,6 @@ void FSuperManagerModule::StartupModule()
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
 }
 
-
-
 #pragma region ContentBrowserMenuExtention
 
 void FSuperManagerModule::InitCBMenuExtention()
@@ -86,13 +84,13 @@ void FSuperManagerModule::OnDeleteUnusedAssetButtonClicked()
 {
 	if (FolderPathsSelected.Num()>1) 
 	{
-		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, "You can only do this to one folder");
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("You can only do this to one folder"));
 		return;
 	}
 	TArray<FString> AssetsPathNames = UEditorAssetLibrary::ListAssets(FolderPathsSelected[0]);
 	if (AssetsPathNames.Num() == 0) 
 	{
-		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, "No asset found under selected folder");
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("No asset found under selected folder"));
 		return;
 	}
 
@@ -124,14 +122,14 @@ void FSuperManagerModule::OnDeleteUnusedAssetButtonClicked()
 	if (UnusedAssetsDataArray.Num() > 0)
 	{
 		EAppReturnType::Type ConfirmResult =
-			DebugHeader::ShowMsgDialog(EAppMsgType::YesNo, "A total of " + FString::FromInt(UnusedAssetsDataArray.Num()) + " found.\nWould you like to procceed?");
+			DebugHeader::ShowMsgDialog(EAppMsgType::YesNo, TEXT("A total of ") + FString::FromInt(UnusedAssetsDataArray.Num()) + " found.\nWould you like to procceed?");
 		if (ConfirmResult == EAppReturnType::No) return;
 		FixUpRedirectors();
 		ObjectTools::DeleteAssets(UnusedAssetsDataArray);
 	}
 	else
 	{
-		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, "No unused asset found under selected folder");
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("No unused asset found under selected folder"));
 	}
 }
 
@@ -260,8 +258,7 @@ TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeletionTab(const FSpawn
 			SNew(SAdvanceDeletionTab)
 				.AssetsDataToStore(GetAllAssetDataUnderSelectedFolder())
 				.CurrentSelectedFolder(FolderPathsSelected[0])
-		]
-		;
+		];
 }
 
 TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelectedFolder()

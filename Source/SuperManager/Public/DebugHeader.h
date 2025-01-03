@@ -13,8 +13,7 @@ namespace DebugHeader
 	EAppReturnType::Type ShowMsgDialog(EAppMsgType::Type MsgType, const FString& Message, bool bShowMsgAsWarning = true)
 	{
 		if (bShowMsgAsWarning) {
-			FText MsgTitle = FText::FromString(TEXT("Warning"));
-			return FMessageDialog::Open(MsgType, FText::FromString(Message), &MsgTitle);
+			return FMessageDialog::Open(MsgType, FText::FromString(Message));
 		}
 		else
 		{

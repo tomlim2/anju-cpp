@@ -17,10 +17,6 @@
 
 #include "QuickAssetActions.generated.h"
 
-
-/**
- * 
- */
 UCLASS()
 class SUPERMANAGER_API UQuickAssetActions : public UAssetActionUtility
 {

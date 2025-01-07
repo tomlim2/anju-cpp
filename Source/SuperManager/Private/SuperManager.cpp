@@ -11,7 +11,7 @@
 #include "SlateWidgets/AdvanceDeletionWidget.h"
 #include "CustomStyle/SuperManagerStyle.h"
 #include "LevelEditor.h"
-
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "FSuperManagerModule"
 
@@ -21,6 +21,7 @@ void FSuperManagerModule::StartupModule()
 	InitCBMenuExtention();
 	RegisterAdvanceDeletionTab();
 	InitLevelEditorExtention();
+	InitCustomSelectionEvent();
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
 }
 
@@ -403,7 +404,7 @@ void FSuperManagerModule::AddLevelEditorMenuEntry(FMenuBuilder &MenuBuilder)
 		FText::FromString(TEXT("Unlock all actor selection")),
 		FText::FromString(TEXT("Remove the selection constraint on all actor")),
 		FSlateIcon(),
-		FExecuteAction::CreateRaw(this,FSuperManagerModule::OnUnlockActorSelectionButtonClicked)
+		FExecuteAction::CreateRaw(this,&FSuperManagerModule::OnUnlockActorSelectionButtonClicked)
 	);
 }
 
@@ -417,6 +418,22 @@ void FSuperManagerModule::OnUnlockActorSelectionButtonClicked()
 	DebugHeader::PrintLog("Unlock Actor Selection Button Clicked");
 }
 
+#pragma endregion
+
+#pragma region SelectionLock
+void FSuperManagerModule::InitCustomSelectionEvent()
+{
+	USelection* UserSelection = GEditor->GetSelectedActors();
+	UserSelection->SelectObjectEvent.AddRaw(this, &FSuperManagerModule::OnActorSelected);
+}
+void FSuperManagerModule::OnActorSelected(UObject *SelectedObject)
+{
+	if(AActor* SelectedActor = Cast<AActor>(SelectedObject))
+	{
+		
+		DebugHeader::PrintLog(SelectedActor->GetActorLabel());
+	}
+}
 #pragma endregion
 
 void FSuperManagerModule::ShutdownModule()

@@ -39,6 +39,11 @@ class FSuperManagerModule : public IModuleInterface
 		void OnUnlockActorSelectionButtonClicked();
 	#pragma endregion
 
+#pragma region SelectionLock
+	void InitCustomSelectionEvent();
+	void OnActorSelected(UObject* SelectedObject);
+#pragma endregion
+
 	public:
 	#pragma region ProccessDataForAdvanceDeletionTab
 		bool DeleteSingleAssetForAssetList(const FAssetData& AssetDataToDelete);

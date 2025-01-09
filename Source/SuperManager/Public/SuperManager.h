@@ -28,7 +28,10 @@ class FSuperManagerModule : public IModuleInterface
 	#pragma region CustomEditorTab
 		void RegisterAdvanceDeletionTab();
 		TSharedRef<SDockTab> OnSpawnAdvanceDeletionTab(const FSpawnTabArgs &SpawnTabArgs);
+		TSharedPtr<SDockTab> ConstructedDockTab;
+		
 		TArray<TSharedPtr<FAssetData>> GetAllAssetDataUnderSelectedFolder();
+		void OnAdvanceDeletionTabClosed(TSharedRef<SDockTab> TabToClose);
 	#pragma endregion
 
 	#pragma region LevelEditorMenuExtension
@@ -49,7 +52,7 @@ class FSuperManagerModule : public IModuleInterface
 #pragma endregion
 	TWeakObjectPtr<class UEditorActorSubsystem> WeakEditorActorSubsystem;
 	bool GetEditorActorSubsystem();
-	
+
 	public:
 	#pragma region ProccessDataForAdvanceDeletionTab
 		bool DeleteSingleAssetForAssetList(const FAssetData& AssetDataToDelete);

@@ -11,8 +11,8 @@
 #include "SlateWidgets/AdvanceDeletionWidget.h"
 #include "CustomStyle/SuperManagerStyle.h"
 #include "LevelEditor.h"
-
-
+#include "Engine/Selection.h"
+#include "Subsystems/EditorActorSubsystem.h"
 #define LOCTEXT_NAMESPACE "FSuperManagerModule"
 
 void FSuperManagerModule::StartupModule()
@@ -21,6 +21,7 @@ void FSuperManagerModule::StartupModule()
 	InitCBMenuExtention();
 	RegisterAdvanceDeletionTab();
 	InitLevelEditorExtention();
+	InitCustomSelectionEvent();
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
 }
 
@@ -84,6 +85,11 @@ void FSuperManagerModule::AddCBMenuEntry(FMenuBuilder & MenuBuilder)
 
 void FSuperManagerModule::OnDeleteUnusedAssetButtonClicked()
 {
+	if(ConstructedDockTab.IsValid())
+	{
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Please close the advance deletion tab before this open"));
+		return;
+	}
 	if (FolderPathsSelected.Num()>1) 
 	{
 		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("You can only do this to one folder"));
@@ -137,6 +143,11 @@ void FSuperManagerModule::OnDeleteUnusedAssetButtonClicked()
 
 void FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked()
 {
+	if(ConstructedDockTab.IsValid())
+	{
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Please close the advance deletion tab before this open"));
+		return;
+	}
 	FixUpRedirectors();
 	TArray<FString> FolderPathsArray = UEditorAssetLibrary::ListAssets(FolderPathsSelected[0], true, true);
 	uint32 Counter = 0;
@@ -254,13 +265,17 @@ void FSuperManagerModule::RegisterAdvanceDeletionTab()
 
 TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeletionTab(const FSpawnTabArgs &SpawnedTadArgs)
 {
-	return
-		SNew(SDockTab).TabRole(ETabRole::NomadTab)
+	if(FolderPathsSelected.Num() == 0 ) return SNew(SDockTab).TabRole(ETabRole::NomadTab);
+	ConstructedDockTab = SNew(SDockTab).TabRole(ETabRole::NomadTab) //TSharedRef<SDockTab> ConstructedDockTab = SNew(SDockTab).TabRole(ETabRole::NomadTab)
 		[
 			SNew(SAdvanceDeletionTab)
 				.AssetsDataToStore(GetAllAssetDataUnderSelectedFolder())
 				.CurrentSelectedFolder(FolderPathsSelected[0])
 		];
+	ConstructedDockTab->SetOnTabClosed(
+	SDockTab::FOnTabClosedCallback::CreateRaw(this,&FSuperManagerModule::OnAdvanceDeletionTabClosed)
+	);
+	return ConstructedDockTab.ToSharedRef();
 }
 
 TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelectedFolder()
@@ -291,6 +306,14 @@ TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelected
 	return AvailableAssetsData;
 }
 
+void FSuperManagerModule::OnAdvanceDeletionTabClosed(TSharedRef<SDockTab> TabToClose)
+{
+	if(ConstructedDockTab.IsValid())
+	{
+		ConstructedDockTab.Reset();
+		FolderPathsSelected.Empty();
+	}
+}
 #pragma endregion
 
 #pragma region ProcessDataForAdvanceDeletionTab
@@ -403,21 +426,118 @@ void FSuperManagerModule::AddLevelEditorMenuEntry(FMenuBuilder &MenuBuilder)
 		FText::FromString(TEXT("Unlock all actor selection")),
 		FText::FromString(TEXT("Remove the selection constraint on all actor")),
 		FSlateIcon(),
-		FExecuteAction::CreateRaw(this,FSuperManagerModule::OnUnlockActorSelectionButtonClicked)
+		FExecuteAction::CreateRaw(this,&FSuperManagerModule::OnUnlockActorSelectionButtonClicked)
 	);
 }
 
 void FSuperManagerModule::OnLockActorSelectionButtonClicked()
 {
+	if(!GetEditorActorSubsystem()) return;
 	DebugHeader::PrintLog("Lock Actor Selection Button Clicked");
+
+	TArray<AActor*> SelectedActors = WeakEditorActorSubsystem->GetSelectedLevelActors();
+
+	if(SelectedActors.Num()==0)
+	{
+		DebugHeader::ShowNotifyInfo(TEXT("No actor selected"));
+		return;
+	}
+	FString CurrentLockedActorNames = TEXT("Locked selection for:");
+
+	for (AActor* SelectedActor:SelectedActors)
+	{
+		if(!SelectedActor) continue;
+		LockActorSelection(SelectedActor);
+		WeakEditorActorSubsystem->SetActorSelectionState(SelectedActor,false);
+		CurrentLockedActorNames.Append(TEXT("\n"));
+		CurrentLockedActorNames.Append(SelectedActor->GetActorLabel());
+	}
+
+	DebugHeader::ShowNotifyInfo(CurrentLockedActorNames);
 }
 
 void FSuperManagerModule::OnUnlockActorSelectionButtonClicked()
 {
-	DebugHeader::PrintLog("Unlock Actor Selection Button Clicked");
+	if(!GetEditorActorSubsystem()) return;
+	TArray<AActor*> AllActorsInLevel =  WeakEditorActorSubsystem->GetAllLevelActors();
+	TArray<AActor*> AllLockedActors;
+
+	for(AActor* ActorInLevel : AllActorsInLevel)
+	{
+		if(!ActorInLevel) continue;
+		
+		if(CheckIsActorSelectionLocked(ActorInLevel))
+		{
+			AllLockedActors.Add(ActorInLevel);
+		}
+	}
+
+	if(AllLockedActors.Num() == 0)
+	{
+		DebugHeader::ShowNotifyInfo(TEXT("No selection locked actor currently"));
+	}
+
+	FString UnlockedActorNames = TEXT("Lifted selection constraint for: ");
+	for(AActor* LockedActor: AllLockedActors)
+	{
+		UnlockActorSelection(LockedActor);
+
+		UnlockedActorNames.Append(TEXT("\n"));
+		UnlockedActorNames.Append(LockedActor->GetActorLabel());
+	}
+	DebugHeader::ShowNotifyInfo(UnlockedActorNames);
 }
 
 #pragma endregion
+
+#pragma region SelectionLock
+void FSuperManagerModule::InitCustomSelectionEvent()
+{
+	USelection* UserSelection = GEditor->GetSelectedActors();
+	UserSelection->SelectObjectEvent.AddRaw(this, &FSuperManagerModule::OnActorSelected);
+}
+void FSuperManagerModule::OnActorSelected(UObject *SelectedObject)
+{
+	if(!GetEditorActorSubsystem()) return;
+	if(AActor* SelectedActor = Cast<AActor>(SelectedObject))
+	{
+		if (CheckIsActorSelectionLocked(SelectedActor))
+		{
+			WeakEditorActorSubsystem->SetActorSelectionState(SelectedActor,false);
+		}
+		
+	}
+} 
+void FSuperManagerModule::LockActorSelection(AActor *ActorToProcess)
+{
+	if(!ActorToProcess) return;
+	if (!ActorToProcess->ActorHasTag(FName("Locked")))
+	{
+		ActorToProcess -> Tags.Add(FName("Locked"));
+	}
+}
+void FSuperManagerModule::UnlockActorSelection(AActor *ActorToProcess)
+{
+	if(!ActorToProcess) return;
+	if(ActorToProcess->ActorHasTag(FName("Locked"))) {
+		ActorToProcess->Tags.Remove(FName("Locked"));
+	}
+}
+bool FSuperManagerModule::CheckIsActorSelectionLocked(AActor *ActorToProcess)
+{
+	if(!ActorToProcess) return false;
+	return ActorToProcess->ActorHasTag(FName("Locked"));
+}
+#pragma endregion
+
+bool FSuperManagerModule::GetEditorActorSubsystem()
+{
+	if(!WeakEditorActorSubsystem.IsValid())
+	{
+		WeakEditorActorSubsystem = GEditor->GetEditorSubsystem<UEditorActorSubsystem>();
+	}
+	return WeakEditorActorSubsystem.IsValid();
+}
 
 void FSuperManagerModule::ShutdownModule()
 {

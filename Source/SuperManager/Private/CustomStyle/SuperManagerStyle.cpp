@@ -34,5 +34,7 @@ TSharedRef<FSlateStyleSet> FSuperManagerStyle::CreateSlateStyleSet()
 	CustomStyleSet->Set("ContentBrowser.Icon_PB_002", new FSlateImageBrush(IconDirectory/"Icon_PB_002.png", Icon16x16));
 	CustomStyleSet->Set("ContentBrowser.Icon_PB_003", new FSlateImageBrush(IconDirectory/"Icon_PB_003.png", Icon16x16));
 	CustomStyleSet->Set("ContentBrowser.Icon_PB_004", new FSlateImageBrush(IconDirectory/"Icon_PB_004.png", Icon16x16));
+	CustomStyleSet->Set("LevelEditor.LockSelection", new FSlateImageBrush(IconDirectory/"Icon_Dessert_004.png", Icon16x16));
+	CustomStyleSet->Set("LevelEditor.UnlockSelection", new FSlateImageBrush(IconDirectory/"Icon_Dessert_001.png", Icon16x16));
 	return CustomStyleSet;
 }

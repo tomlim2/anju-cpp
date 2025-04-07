@@ -13,6 +13,8 @@
 #include "LevelEditor.h"
 #include "Engine/Selection.h"
 #include "Subsystems/EditorActorSubsystem.h"
+#include "CustomUICommand/SuperManagerUICommands.h"
+
 #define LOCTEXT_NAMESPACE "FSuperManagerModule"
 
 void FSuperManagerModule::StartupModule()
@@ -20,9 +22,10 @@ void FSuperManagerModule::StartupModule()
 	FSuperManagerStyle::InitializeIcons();
 	InitCBMenuExtention();
 	RegisterAdvanceDeletionTab();
+	FSuperManagerUICommands::Register();
+	InitCustomUICommands();
 	InitLevelEditorExtention();
 	InitCustomSelectionEvent();
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
 }
 
 #pragma region ContentBrowserMenuExtention
@@ -388,7 +391,10 @@ void FSuperManagerModule::InitLevelEditorExtention()
 {
 	FLevelEditorModule& LevelEditorModule = 
 	FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-	
+
+	TSharedRef<FUICommandList> ExistingLevelCommands = LevelEditorModule.GetGlobalLevelEditorActions();
+	ExistingLevelCommands->Append(CustomUICommands.ToSharedRef());
+
 	TArray<FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors>& LevelEditorMenuExtenders = 
 	LevelEditorModule.GetAllLevelViewportContextMenuExtenders();
 
@@ -487,7 +493,6 @@ void FSuperManagerModule::OnUnlockActorSelectionButtonClicked()
 	}
 	DebugHeader::ShowNotifyInfo(UnlockedActorNames);
 }
-
 #pragma endregion
 
 #pragma region SelectionLock
@@ -496,6 +501,7 @@ void FSuperManagerModule::InitCustomSelectionEvent()
 	USelection* UserSelection = GEditor->GetSelectedActors();
 	UserSelection->SelectObjectEvent.AddRaw(this, &FSuperManagerModule::OnActorSelected);
 }
+
 void FSuperManagerModule::OnActorSelected(UObject *SelectedObject)
 {
 	if(!GetEditorActorSubsystem()) return;
@@ -507,7 +513,8 @@ void FSuperManagerModule::OnActorSelected(UObject *SelectedObject)
 		}
 		
 	}
-} 
+}
+
 void FSuperManagerModule::LockActorSelection(AActor *ActorToProcess)
 {
 	if(!ActorToProcess) return;
@@ -519,7 +526,8 @@ void FSuperManagerModule::LockActorSelection(AActor *ActorToProcess)
 void FSuperManagerModule::UnlockActorSelection(AActor *ActorToProcess)
 {
 	if(!ActorToProcess) return;
-	if(ActorToProcess->ActorHasTag(FName("Locked"))) {
+	if(ActorToProcess->ActorHasTag(FName("Locked"))) 
+	{
 		ActorToProcess->Tags.Remove(FName("Locked"));
 	}
 }
@@ -528,6 +536,32 @@ bool FSuperManagerModule::CheckIsActorSelectionLocked(AActor *ActorToProcess)
 	if(!ActorToProcess) return false;
 	return ActorToProcess->ActorHasTag(FName("Locked"));
 }
+#pragma endregion
+
+#pragma region CustomEditorUICommands
+void FSuperManagerModule::InitCustomUICommands()
+{
+	CustomUICommands =	MakeShareable(new FUICommandList());
+	CustomUICommands->MapAction(
+		FSuperManagerUICommands::Get().LockActorSelection,
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnSelectionLockHotKeyPressed)
+	);
+	CustomUICommands->MapAction(
+		FSuperManagerUICommands::Get().UnlockActorSelection,
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnSelectionUnlockHotKeyPressed)
+	);
+}
+
+void FSuperManagerModule::OnSelectionLockHotKeyPressed()
+{
+	OnLockActorSelectionButtonClicked();
+}
+
+void FSuperManagerModule::OnSelectionUnlockHotKeyPressed()
+{
+	OnUnlockActorSelectionButtonClicked();
+}
+
 #pragma endregion
 
 bool FSuperManagerModule::GetEditorActorSubsystem()

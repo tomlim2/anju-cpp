@@ -48,18 +48,25 @@ class FSuperManagerModule : public IModuleInterface
 	void LockActorSelection(AActor* ActorToProcess);
 	void UnlockActorSelection(AActor* ActorToProcess);
 	bool CheckIsActorSelectionLocked(AActor* ActorToProcess);
-	
 #pragma endregion
+
+#pragma region CustomEditorUICommands
+	TSharedPtr<class FUICommandList> CustomUICommands;
+	void InitCustomUICommands();
+	void OnSelectionLockHotKeyPressed();
+	void OnSelectionUnlockHotKeyPressed();
+#pragma endregion
+
 	TWeakObjectPtr<class UEditorActorSubsystem> WeakEditorActorSubsystem;
 	bool GetEditorActorSubsystem();
 
 	public:
-	#pragma region ProccessDataForAdvanceDeletionTab
+#pragma region ProccessDataForAdvanceDeletionTab
 		bool DeleteSingleAssetForAssetList(const FAssetData& AssetDataToDelete);
 		bool DeleteMultipleAssetsForAssetList(const TArray<FAssetData>& AssetsToDelete);
 		void ListUnusedAssetsForAssetList(const TArray<TSharedPtr<FAssetData>>& AssetsDataToFilter,
 			TArray<TSharedPtr<FAssetData>>& OutUnusedAssetsData);
 		void ListSameNameAssetsForAssetList(const TArray<TSharedPtr<FAssetData>>& AssetsDataToFilter, TArray<TSharedPtr<FAssetData>>& OutSameNameAssetsData);
 		void SyscCBToClickedAssetForAssetList(const FString& AssetPathToSync);
-	#pragma endregion
+#pragma endregion
 };
